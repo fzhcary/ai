@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import getpass
 import os
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -139,8 +139,10 @@ async def query_sql(
     # Set up the query chain with the new database
     execute_query = QuerySQLDataBaseTool(db=db)
     write_query = create_sql_query_chain(llm, db, k=30)
-    print(f"generated query is {write_query}")
-    chain = write_query | execute_query
+
+    # Debugging: Generate the query from the input question
+    generated_query = write_query.invoke({"question": query})
+    print(f"Generated SQL query: {generated_query}")
 
     # Set up the final chain
     final_chain = (
@@ -164,7 +166,9 @@ async def query_sql(
     </head>
     <body>
         <h1>Query Result</h1>
-        <p>{result}</p>
+        <p>Question: {query}</p>
+        <p>Generated SQL query: {generated_query}</p>
+        <p>Result: {result}</p>
         <a href="/">Go Back</a>
     </body>
     </html>

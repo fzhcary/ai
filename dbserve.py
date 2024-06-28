@@ -2,7 +2,7 @@
 from typing import List
 
 from fastapi import FastAPI
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from langserve import add_routes
@@ -88,7 +88,6 @@ SELECT [death] FROM covidtracking WHERE state = 'TX' AND date LIKE '2020%'"
 
 """
 
-
 # 1. Create prompt template
 system_template = "can you answer questions about a sql database "
 prompt_template = ChatPromptTemplate.from_messages([
@@ -96,38 +95,37 @@ prompt_template = ChatPromptTemplate.from_messages([
     ('user', '{question}')
 ])
 
-
 # 2. Create model
 llm = ChatOpenAI(model="gpt-3.5-turbo",
                  temperature=0,
                  max_tokens=500)
 
-database='./db/chinook.db'
+database = './db/chinook.db'
 db = SQLDatabase.from_uri(f'sqlite:///{database}')
 toolkit = SQLDatabaseToolkit(db=db, llm=llm)
 
 agent_executor_SQL = create_sql_agent(
     prefix=MSSQL_AGENT_PREFIX,
-    format_instructions = MSSQL_AGENT_FORMAT_INSTRUCTIONS,
+    format_instructions=MSSQL_AGENT_FORMAT_INSTRUCTIONS,
     llm=llm,
     toolkit=toolkit,
     top_k=30,
     verbose=True
 )
 
-
 # 3. Create parser
 parser = StrOutputParser()
 
+
 # 4. Create chain
-chain = agent_executor_SQL 
+chain = prompt_template | agent_executor_SQL #| StrOutputParser()
 
 
 # 4. App definition
 app = FastAPI(
-  title="LangChain Server",
-  version="1.0",
-  description="A simple API server using LangChain's Runnable interfaces",
+    title="LangChain Server",
+    version="1.0",
+    description="A simple API server using LangChain's Runnable interfaces",
 )
 
 # 5. Adding chain route
@@ -141,4 +139,4 @@ add_routes(
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="localhost", port=8000)
+    uvicorn.run(app, host="localhost", port=8002)
